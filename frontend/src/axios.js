@@ -16,38 +16,23 @@ const api = axios.create({
   timeout: 30000,
 });
 
-api.interceptors.request.use(
-  async (config) => {
-    try {
-      // Initialize MSAL if not already done
-      await msalInstance.initialize();
-      
-      const accounts = msalInstance.getAllAccounts();
-      const activeAccount = msalInstance.getActiveAccount() || accounts[0];
 
-      if (activeAccount) {
-        try {
-          const response = await msalInstance.acquireTokenSilent({
-            ...loginRequest,
-            account: activeAccount
-          });
-          
-          config.headers.Authorization = `Bearer ${response.accessToken}`;
-          console.log("Token attached to request");
-        } catch (error) {
-          console.error("Silent token acquisition failed:", error);
-        }
-      } else {
-        console.log("No active account found for token");
-      }
-    } catch (error) {
-      console.error("MSAL initialization error:", error);
-    }
+api.interceptors.request.use(async (config) => {
+  const accounts = msalInstance.getAllAccounts();
+  const activeAccount =
+    msalInstance.getActiveAccount() || accounts[0];
 
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  if (activeAccount) {
+    const response = await msalInstance.acquireTokenSilent({
+      ...loginRequest,
+      account: activeAccount,
+    });
+
+    config.headers.Authorization = `Bearer ${response.accessToken}`;
+  }
+
+  return config;
+});
 
 api.interceptors.response.use(
   (response) => response,

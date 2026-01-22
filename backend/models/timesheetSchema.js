@@ -59,7 +59,6 @@ const timesheetSchema = new mongoose.Schema(
   }
 );
 
-timesheetSchema.index({ employee: 1, date: 1 }, { unique: true });
 timesheetSchema.index({ employee: 1, "date": 1 }, { 
   partialFilterExpression: { 
     date: { $exists: true },

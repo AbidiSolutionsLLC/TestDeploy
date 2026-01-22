@@ -5,7 +5,6 @@ const express = require("express");
 const cors = require("cors");
 require("./conn/conn");
 const cookieParser = require("cookie-parser");
-const refreshTokenMiddleware = require('./middlewares/refreshTokenMiddleware');
 const globalErrorHandler = require('./middlewares/globalErrorHandler');
 const CronJobs = require('./cronjobs');
 const path = require("path");
@@ -31,9 +30,13 @@ app.use('/api/web', require('./routes/webRoutesMount'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
+  if (req.originalUrl.startsWith('/api')) {
+    return next(); // let API fail properly
+  }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 
 app.all("*", (req, res, next) => {
   const { ExpressError } = require("./utils/ExpressError");

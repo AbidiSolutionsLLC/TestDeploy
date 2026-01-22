@@ -1,5 +1,6 @@
-require('dotenv').config();
-
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 const express = require("express");
 const cors = require("cors");
 require("./conn/conn");
@@ -28,10 +29,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', require('./routes/allRoutes'));
 app.use('/api/web', require('./routes/webRoutesMount'));
 
-app.use(express.static(path.join(__dirname, 'frontend-antigravity', 'dist')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend-antigravity', 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.all("*", (req, res, next) => {

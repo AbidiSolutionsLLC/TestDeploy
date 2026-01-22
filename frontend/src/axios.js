@@ -13,7 +13,7 @@ const msalInstance = new PublicClientApplication(msalConfig);
 
 const api = axios.create({
   baseURL: "/api/web",
-  timeout: 10000,
+  timeout: 30000,
 });
 
 api.interceptors.request.use(

@@ -12,7 +12,7 @@ export const injectStore = (_store) => {
 const msalInstance = new PublicClientApplication(msalConfig);
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000/api/web",
+  baseURL: import.meta.env.VITE_API_URL || "api/web",
   timeout: 10000,
 });
 

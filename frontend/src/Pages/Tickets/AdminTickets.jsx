@@ -3,7 +3,7 @@ import { Search, Clock, Filter, SortDesc, Plus } from "lucide-react";
 import { FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import api from "../../axios";
-import AdminRaiseTicketModal from "../../Pages/Tickets/AdminRaiseTicketModal";
+import AdminRaiseTicketModal from "../../Pages/Tickets/RaiseTicketModal";
 import { Spin } from "antd";
 
 const AdminTickets = () => {
@@ -165,7 +165,12 @@ const AdminTickets = () => {
       </div>
 
       {/* Tickets Table Card */}
-      <Spin spinning={loading}>
+      {loading ? (
+        <div className="text-center p-6 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
+          <p className="mt-3 text-slate-600 text-xs font-medium uppercase tracking-wide">Loading tickets...</p>
+        </div>
+      ) : (
         <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
           <div className="mb-4">
             <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Tickets Management</h2>
@@ -292,9 +297,7 @@ const AdminTickets = () => {
             </table>
           </div>
         </div>
-      </Spin>
-
-      {/* Modal */}
+      )}
       {showModal && (
         <AdminRaiseTicketModal
           onClose={() => setShowModal(false)}

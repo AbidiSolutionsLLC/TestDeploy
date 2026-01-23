@@ -15,9 +15,15 @@ const LeaveTrackerAdmin = () => {
   const [toast, setToast] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for holidays
 
+  // Manager User Leaves State
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [leaveBalances, setLeaveBalances] = useState({ pto: 0, sick: 0 });
+
   const [loading, setLoading] = useState({
     leaves: true,
-    holidays: true
+    holidays: true,
+    users: true
   });
 
   // Helper to show toast
@@ -64,20 +70,65 @@ const LeaveTrackerAdmin = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get("/users");
+      // Filter out SuperAdmin if necessary, or just display all
+      const filtered = response.data.filter(u => u.role !== 'SuperAdmin');
+      setUsers(filtered);
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+      showToast("Failed to load users", "error");
+    } finally {
+      setLoading(prev => ({ ...prev, users: false }));
+    }
+  };
+
+  const handleUserSelect = async (e) => {
+    const userId = e.target.value;
+    setSelectedUser(userId);
+    if (!userId) {
+      setLeaveBalances({ pto: 0, sick: 0 });
+      return;
+    }
+
+    try {
+      const response = await api.get(`/users/${userId}/leaves`);
+      setLeaveBalances({
+        pto: response.data.pto || 0,
+        sick: response.data.sick || 0
+      });
+    } catch (error) {
+      console.error("Failed to fetch user leaves:", error);
+      showToast("Failed to fetch user leave balance", "error");
+    }
+  };
+
+  const handleUpdateLeaves = async () => {
+    if (!selectedUser) return;
+    try {
+      await api.put(`/users/${selectedUser}/leaves`, leaveBalances);
+      showToast("User leave balance updated successfully");
+    } catch (error) {
+      console.error("Failed to update leaves:", error);
+      showToast("Failed to update leaves", "error");
+    }
+  };
+
   const handleStatusChange = async (leaveId, newStatus) => {
     try {
       await api.put(`/leaves/${leaveId}/status`, { status: newStatus });
       showToast(`Leave status updated to ${newStatus}`);
-      
+
       // Update local state immediately for better UX
-      setDepartmentLeaveRecord(prev => 
-        prev.map(leave => 
-          leave.id === leaveId 
+      setDepartmentLeaveRecord(prev =>
+        prev.map(leave =>
+          leave.id === leaveId
             ? { ...leave, status: newStatus }
             : leave
         )
       );
-      
+
       await fetchLeaves(); // Refresh from server
     } catch (error) {
       console.error(
@@ -103,11 +154,12 @@ const LeaveTrackerAdmin = () => {
   useEffect(() => {
     fetchLeaves();
     fetchHolidays();
+    fetchUsers();
   }, []);
 
   // Get status color class
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status) {
       case "Approved": return "bg-green-100 text-green-800";
       case "Rejected": return "bg-red-100 text-red-800";
       default: return "bg-yellow-100 text-yellow-800";
@@ -118,10 +170,10 @@ const LeaveTrackerAdmin = () => {
     <div className="min-h-screen bg-transparent p-2">
       {/* Toast Notification */}
       {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
 
@@ -137,7 +189,7 @@ const LeaveTrackerAdmin = () => {
 
       {/* Main content area */}
       <div className="space-y-4">
-        
+
         {/* Applied Leave Section */}
         <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
           <div className="mb-4">
@@ -255,10 +307,68 @@ const LeaveTrackerAdmin = () => {
         </div>
       </div>
 
+      {/* Manage User Leaves Section */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4 mt-4">
+        <div className="mb-4">
+          <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Manage User Leaves</h2>
+          <p className="text-[10px] font-medium text-slate-500 mt-1">Adjust leave balances for employees</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="col-span-1 md:col-span-2">
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Select Employee</label>
+            <select
+              value={selectedUser}
+              onChange={handleUserSelect}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
+            >
+              <option value="">Select an employee...</option>
+              {users.map(user => (
+                <option key={user._id} value={user._id}>
+                  {user.name} ({user.role})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">PTO Balance</label>
+            <input
+              type="number"
+              value={leaveBalances.pto}
+              onChange={(e) => setLeaveBalances(prev => ({ ...prev, pto: Number(e.target.value) }))}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
+              disabled={!selectedUser}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">Sick Leaves</label>
+            <input
+              type="number"
+              value={leaveBalances.sick}
+              onChange={(e) => setLeaveBalances(prev => ({ ...prev, sick: Number(e.target.value) }))}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
+              disabled={!selectedUser}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={handleUpdateLeaves}
+            disabled={!selectedUser}
+            className="px-6 py-2.5 bg-[#64748b] text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+          >
+            Update Balances
+          </button>
+        </div>
+      </div>
+
       {/* Holiday Modal */}
-      <AddHolidayModal 
-        isOpen={isOpen} 
-        setIsOpen={setIsOpen} 
+      <AddHolidayModal
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
         onHolidayAdded={handleHolidayAdded}
       />
     </div>

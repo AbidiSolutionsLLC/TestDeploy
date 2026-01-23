@@ -19,13 +19,15 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
     // Redux state
     const { checkInn, loading } = useSelector((state) => state.attendanceTimer);
 
+    const {user} = useSelector((state) => state.auth);
+
     const {userInfo} = useSelector((state) => state.user);
 
     useEffect(() => {
-        if (userInfo?._id) {
-            dispatch(refreshUserData(userInfo._id));
+        if(user?.user?._id){
+            dispatch(refreshUserData(user?.user?._id));
         }
-    }, [dispatch, userInfo?._id]);
+    }, []);
 
     const currentUser = userInfo;
     const profileImage = currentUser?.avatar || "";

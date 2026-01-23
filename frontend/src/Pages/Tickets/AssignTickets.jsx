@@ -50,7 +50,7 @@ const AssignTicket = () => {
 
     const fetchTechnician = async () => {
       try {
-        const res = await api.get("/users/Technician");
+        const res = await api.get("/users/Technician/by-role");
         setTechnician(res.data);
       } catch (error) {
         showToast(error.response?.data?.message || "Failed to fetch Technicians", "error");

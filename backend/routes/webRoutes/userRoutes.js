@@ -13,7 +13,7 @@ router
   .post(upload.single("profilePhoto"), userController.createUser)
   .get(userController.getAllUsers);
 
-router.get("/:role", userController.getUserByRole);
+router.get("/:role/by-role", userController.getUserByRole);
 
 router.get('/birthdays/upcoming', userController.getUpcomingBirthdays);
 router.get("/org-chart", isLoggedIn, userController.getOrgChart);

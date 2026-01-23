@@ -91,7 +91,7 @@ const LeaveLogCard = ({ onDelete }) => {
         </div>
       </div>
 
-      <ul className="space-y-2 text-[10px]">
+      <ul className="space-y-2 text-[10px] max-h-[100px] overflow-y-auto">
         {leaveLogs.length > 0 ? (
           leaveLogs.map((log, index) => (
             <li

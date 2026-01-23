@@ -381,3 +381,31 @@ body {
     --color-border-primary: #475569;
   }
 }
+/* index.css */
+
+/* The actual toast card */
+.Toastify__toast {
+  border-radius: 1.5rem !important; /* Matches your sidebar/outlet radius */
+  padding: 12px !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* The progress bar at the bottom */
+.Toastify__progress-bar {
+  height: 3px !important;
+  border-radius: 0 0 1.5rem 1.5rem;
+  background: #1e293b !important; /* Slate-800 to match your logo */
+}
+
+/* Center the toast text */
+.Toastify__toast-body {
+  margin: 0;
+  padding: 0;
+}
+/* Hide the progress bar entirely */
+/* .Toastify__progress-bar {
+  display: none !important;
+} */

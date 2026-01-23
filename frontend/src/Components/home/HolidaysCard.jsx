@@ -100,7 +100,7 @@ const HolidaysCard = ({ onDelete }) => {
       </div>
 
       {/* Holiday list */}
-      <ul className="space-y-2 text-[10px]">
+      <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
         {holidays.slice(0, 3).map((holiday, index) => (
           <li
             key={index}

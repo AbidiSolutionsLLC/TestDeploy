@@ -4,7 +4,7 @@ import UserManagementTable from "../../Components/UserManagementTable";
 import { FaPlus, FaSearch, FaSortDown, FaSortUp } from "react-icons/fa";
 import UserDetailModal from "../../Components/UserDetailModal";
 import api from "../../axios";
-import Toast from "../../Components/Toast";
+import { toast } from "react-toastify";
 
 
 const UserManagement = () => {
@@ -17,12 +17,6 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isUserDetailOpen, setIsUserDetailOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -34,10 +28,11 @@ const UserManagement = () => {
       setUsers(usersRes.data);
       setDepartments(deptsRes.data);
       setFilteredUsers(usersRes.data);
-      showToast('Data loaded successfully');
+      console.log("success")
+      toast.success('Data loaded successfully');
     } catch (error) {
       console.error("Failed to fetch data:", error);
-      showToast('Failed to load data', 'error');
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -45,6 +40,7 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchData();
+    console.log("calling the fetch")
   }, []);
 
   useEffect(() => {
@@ -92,21 +88,21 @@ const UserManagement = () => {
 
   const handleUserCreated = () => {
     fetchData();
-    showToast('User created successfully');
+    toast.success('User created successfully');
   };
 
   const handleUserUpdated = (type = 'update') => {
     fetchData();
     if (type === 'delete') {
-      showToast('User deleted successfully');
+      toast.success('User deleted successfully');
     } else {
-      showToast('User updated successfully');
+      toast.success('User updated successfully');
     }
   };
 
   const handleUserDeleted = () => {
     fetchData();
-    showToast('User deleted successfully');
+    toast.success('User deleted successfully');
   };
 
 
@@ -145,8 +141,6 @@ const UserManagement = () => {
           background: #94a3b8;
         }
       `}</style>
-
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

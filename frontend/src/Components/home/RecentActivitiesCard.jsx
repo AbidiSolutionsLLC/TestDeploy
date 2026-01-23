@@ -78,7 +78,7 @@ const RecentActivitiesCard = ({ onDelete }) => {
         </div>
       </div>
 
-      <ul className="space-y-2 text-[10px]">
+      <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
         {recentActivities.map((item) => (
           <li
             key={item.id}

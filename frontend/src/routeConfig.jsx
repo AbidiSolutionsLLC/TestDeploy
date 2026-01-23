@@ -1,16 +1,21 @@
 export const moduleConfigs = {
   people: {
-  basePath: "/people",
-  subNavbarKey: "people",
-  links: [
-    { name: "Home", path: "/people/home" },
-    { name: "Profile", path: "/people/profile" },
-    { name: "Attendance", path: "/people/attendance" },
-    { name: "Time Tracker", path: "/people/history" },
-    { name: "Leave Tracker", path: "/people/summary" },
-    { name: "Ticket", path: "/people/raise" },
-  ],
-},
+    basePath: "/people",
+    subNavbarKey: "people",
+    links: [
+      { name: "Home", path: "/people/home" },
+      { name: "Profile", path: "/people/profile" },
+      { name: "Attendance", path: "/people/attendance" },
+      { name: "Time Tracker", path: "/people/history" },
+      { name: "Leave Tracker", path: "/people/summary" },
+      { name: "Ticket", path: "/people/raise" },
+       //from leave  { name: "Leave Summary", path: "/leave/summary" },
+      // { name: "Files", path: "/people/shared" }, //from file    { name: "Shared with me", path: "/file/shared" },
+       // from time   { name: "Time Tracker", path: "/time/history" },
+         // from tickets    { name: "Raise a Ticket", path: "/tickets/raise" },
+      // {name: "FAQ", path: "/people/FAQs"},
+    ],
+  },
   // leave: {
   //   basePath: "/leave",
   //   subNavbarKey: "leave",

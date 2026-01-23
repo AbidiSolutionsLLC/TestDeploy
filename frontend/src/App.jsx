@@ -56,8 +56,8 @@ function App() {
     <>
       <ToastContainer
         position="top-right"
-        autoClose={2000}
-        hideProgressBar={false}
+autoClose={3000}        // Ensure this is set (3 seconds)
+        hideProgressBar={true}
         newestOnTop
         closeOnClick
         pauseOnHover
@@ -88,20 +88,24 @@ function App() {
         <Route path="/theme-selector" element={<ThemeSelector />} />
 
         {/* Main App Routes with AppLayout and SubNavbar */}
-        <Route path="/people/*" element={
-          <PrivateRoute>
-            <AppLayout />
-          </PrivateRoute>
-        }>
+        <Route
+          path="/people/*"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
           <Route index element={<Navigate to="/people/home" />} />
-          <Route path='home' element={<Home />} />
+          <Route
+            path='home' element={<Home />} />
           <Route path="timetracker" element={<TimeTracker />} />
           <Route index path="summary" element={<LeaveTracker />} />
           <Route index path="shared" element={<Files />} />
+          {/* <Route path="files" element={<Files />} /> */}
           <Route index path="raise" element={<Ticket />} />
           <Route index path="history" element={<TimeTracker />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="profile/:id" element={<Profile />} /> {/* Add this line */}
           <Route path="attendance" element={<Attendance />} />
           <Route path="edit-profile" element={<EditProfile />} />
           <Route path="FAQs" element={<FAQs />} />
@@ -131,16 +135,16 @@ function App() {
           <Route index element={<Navigate to="raise" replace />} />
           <Route index path="raise" element={<Ticket />} />
           <Route path="ticketlist" element={<AdminTickets />} /> */}
-        {/* <Route path ="leaveTrackerAdmin" element={<LeaveTrackerAdmin/>}/> */}
+          {/* <Route path ="leaveTrackerAdmin" element={<LeaveTrackerAdmin/>}/> */}
         {/* </Route> */}
-
-        <Route path="/project/*" element={<AppLayout />}>
-          {/* You can point everything inside projects to ComingSoon */}
-          <Route index element={<ComingSoon />} />
-          <Route path="projectDashboard" element={<ComingSoon />} />
-          <Route path="projects" element={<ComingSoon />} />
-          <Route path="projectDetailed/:id" element={<ComingSoon />} />
-        </Route>
+        
+       <Route path="/project/*" element={<AppLayout />}>
+  {/* You can point everything inside projects to ComingSoon */}
+  <Route index element={<ComingSoon />} />
+  <Route path="projectDashboard" element={<ComingSoon />} />
+  <Route path="projects" element={<ComingSoon />} />
+  <Route path="projectDetailed/:id" element={<ComingSoon />} />
+</Route>
 
         <Route path="/faq/*" element={<AppLayout />}>
           <Route index element={<FAQs />} />
@@ -151,8 +155,8 @@ function App() {
           <Route index element={<Navigate to="adminDashboard" replace />} /> //
           Redirect
           <Route index path="adminDashboard" element={<AdminDashBoard />} />
-          <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
-          <Route path="upload" element={<UploadDocument />} />
+             <Route path="leaveTrackerAdmin" element={<LeaveTrackerAdmin />} />
+                <Route path="upload" element={<UploadDocument />} />
           <Route path="userManagement" element={<UserManagement />} />
           {/* <Route path="logs" element={<ActivityLogs />} /> */}
           <Route path="approve" element={<ApproveTimesheets />} />

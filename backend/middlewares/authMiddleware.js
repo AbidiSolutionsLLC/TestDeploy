@@ -11,18 +11,8 @@ const client = jwksClient({
 });
 
 function getKey(header, callback) {
-  console.log("Fetching signing key for kid:", header.kid);
   client.getSigningKey(header.kid, function (err, key) {
-    if (err) {
-      console.error("JWKS Error Details:", {
-        message: err.message,
-        code: err.code,
-        statusCode: err.statusCode
-      });
-      return callback(err, null);
-    }
     const signingKey = key.getPublicKey();
-    console.log("Successfully retrieved signing key");
     callback(null, signingKey);
   });
 }
@@ -36,16 +26,8 @@ const isLoggedIn = async (req, res, next) => {
 
   const token = authHeader.split(" ")[1];
   
-  // Log token header for debugging (don't log full token in production)
   try {
     const decoded = jwt.decode(token, { complete: true });
-    console.log("Token Header:", decoded?.header);
-    console.log("Token Claims (aud, iss):", {
-      aud: decoded?.payload?.aud,
-      iss: decoded?.payload?.iss,
-      oid: decoded?.payload?.oid,
-      upn: decoded?.payload?.upn
-    });
   } catch (e) {
     console.error("Failed to decode token:", e.message);
   }
@@ -62,11 +44,6 @@ const isLoggedIn = async (req, res, next) => {
     algorithms: ['RS256']
   };
 
-  console.log("Verifying token with options:", {
-    audience: verifyOptions.audience,
-    issuer: verifyOptions.issuer
-  });
-
   jwt.verify(token, getKey, verifyOptions, async (err, decoded) => {
     if (err) {
       console.error("--- TOKEN VERIFICATION FAILED ---");
@@ -75,11 +52,7 @@ const isLoggedIn = async (req, res, next) => {
       console.error("Stack:", err.stack);
       return next(new UnauthorizedError("Invalid or expired token"));
     }
-
-    console.log("Token verified successfully");
-
     try {
-      // Identity Mapping
       let user = await User.findOne({ azureId: decoded.oid });
 
       if (!user) {
@@ -90,7 +63,6 @@ const isLoggedIn = async (req, res, next) => {
           return next(new UnauthorizedError("Token does not contain an email address"));
         }
 
-        // Check if user exists by email (migration scenario)
         user = await User.findOne({ email: email });
 
         if (user) {

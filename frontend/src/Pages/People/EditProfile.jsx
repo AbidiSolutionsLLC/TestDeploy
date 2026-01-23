@@ -352,7 +352,7 @@ export default function EditProfile() {
           />
           <label
             htmlFor="avatar-upload-edit"
-            className="absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            className="w-28 h-28 absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
           >
             <FiCamera className="text-white text-xl" />
           </label>
@@ -408,7 +408,6 @@ export default function EditProfile() {
               value={formData.phoneNumber}
               onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
               placeholder="Digits only"
-              disabled
             />
           </div>
           <div>

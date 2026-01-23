@@ -34,7 +34,6 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
     const firstName = currentUser?.name || "User";
 
     const manager = currentUser?.reportsTo || null;
-  
     const teamMembers = useMemo(() => {
         if (!currentUser?.department?.members) return [];
 
@@ -127,7 +126,7 @@ const RightSidebar = ({ isOpen, toggleSidebar }) => {
     const buttonState = getButtonState();
 
     return (
-        <aside className={`sticky top-14 z-50 h-[calc(100vh-3.5rem)] transition-all duration-500 ease-in-out flex-shrink-0 flex items-center py-2 pr-3 overflow-auto ${isOpen ? "w-52" : "w-8"
+        <aside className={`sticky mt-2 z-50 h-[calc(100vh-2rem)] transition-all duration-500 ease-in-out flex-shrink-0 flex items-center  pr-3 overflow-auto ${isOpen ? "w-52" : "w-8"
             }`}>
 
             {/* Toggle Button */}

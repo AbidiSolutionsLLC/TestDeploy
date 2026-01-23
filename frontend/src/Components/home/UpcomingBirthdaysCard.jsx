@@ -84,7 +84,7 @@ const UpcomingBirthdaysCard = ({ onDelete }) => {
       </div>
 
       {birthdays.length > 0 ? (
-        <ul className="space-y-2 text-[10px]">
+        <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
           {birthdays.slice(0, 3).map((b, index) => (
             <li
               key={index}

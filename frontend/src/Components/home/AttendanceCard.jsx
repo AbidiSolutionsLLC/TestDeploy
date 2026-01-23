@@ -124,7 +124,7 @@ const AttendanceCard = ({ onDelete }) => {
       </div>
 
       {/* Bar Chart */}
-      <div className="bg-[#E0E5EA]/30 rounded-xl p-3">
+      <div className="bg-[#E0E5EA]/30 rounded-xl p-3 overflow-auto">
         <div className="flex items-end justify-between h-20 gap-1.5">
           {weeklyData.map(({ day, hours, status }, i) => {
             let color = "bg-slate-300";

@@ -14,7 +14,7 @@ import {
   FaRegCalendarAlt
 } from "react-icons/fa";
 import api from "../../axios";
-import Toast from "../../Components/Toast"; // Updated import
+import { toast } from "react-toastify";
 
 const StatusBadge = ({ status }) => {
   const statusConfig = {
@@ -55,14 +55,6 @@ const Attendance = () => {
   const [expandedView, setExpandedView] = useState(false);
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(false);
-  
-  // Custom Toast State
-  const [toast, setToast] = useState(null);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   const fetchAttendanceData = async (startDate) => {
     try {
@@ -73,7 +65,7 @@ const Attendance = () => {
       const response = await api.get(`/timetrackers/attendance/${month}/${year}`);
       setAttendanceData(response.data);
     } catch (error) {
-      showToast("Failed to load attendance data", "error"); // Updated to use showToast
+      toast.error("Failed to load attendance data");
       console.error("Error fetching attendance:", error);
     } finally {
       setLoading(false);
@@ -181,15 +173,6 @@ const Attendance = () => {
 
   return (
     <div className="min-h-screen bg-transparent p-2">
-      {/* Toast Notification Rendering */}
-      {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
-        />
-      )}
-
       {/* Header card with updated calendar navigation */}
       <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -223,11 +206,11 @@ const Attendance = () => {
               </button>
 
               {showCalendar && (
-                <div className="absolute z-50 mt-2 bg-white/95 backdrop-blur-sm shadow-lg rounded-xl border border-white/50">
-                  <DatePicker
+               <div className="absolute z-[999] mt-2 right-0 sm:left-0 bg-white shadow-2xl rounded-xl border border-slate-200">
+      <DatePicker
                     selected={selectedDate}
                     onChange={handleDateChange}
-                    inline
+                    inline={false} // Change to false to use as a popup if preferred
                     calendarClassName="border-0"
                     renderCustomHeader={({
                       date,
@@ -275,7 +258,7 @@ const Attendance = () => {
       </div>
 
       {/* Timeline-style Attendance View */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-2 w-full overflow-x-auto">
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] -z-10 shadow-md border border-white/50 p-2 w-full overflow-x-auto">
         {loading ? (
           <div className="text-center p-6">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>

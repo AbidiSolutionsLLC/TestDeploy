@@ -71,7 +71,7 @@ const TasksAssignedToMeCard = ({ onDelete }) => {
       </div>
 
       {/* Task list */}
-      <ul className="space-y-2 text-[10px]">
+      <ul className="space-y-2 text-[10px] max-h-[200px] overflow-y-auto">
         {assignedTasks.map((item, index) => (
           <li
             key={index}

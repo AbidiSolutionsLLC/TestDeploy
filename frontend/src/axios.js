@@ -1,6 +1,7 @@
 import axios from "axios";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { msalConfig, loginRequest } from "./authConfig";
+import { toast } from "react-toastify"; // Import toast
 
 let store;
 
@@ -8,21 +9,18 @@ export const injectStore = (_store) => {
   store = _store;
 };
 
-// Create MSAL instance
 const msalInstance = new PublicClientApplication(msalConfig);
-let msalInitialized = false; // Track initialization
+let msalInitialized = false;
 
 const api = axios.create({
-  // Use Environment Variable for URL. Fallback to localhost if not set.
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api/web",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000/api/web",
   timeout: 30000,
-  withCredentials: true // Important for cookies/sessions
+  withCredentials: true 
 });
 
 api.interceptors.request.use(
   async (config) => {
     try {
-      // Initialize MSAL only once to prevent errors
       if (!msalInitialized) {
         await msalInstance.initialize();
         msalInitialized = true;
@@ -37,31 +35,41 @@ api.interceptors.request.use(
             ...loginRequest,
             account: activeAccount
           });
-          
           config.headers.Authorization = `Bearer ${response.accessToken}`;
-          // console.log("Token attached to request"); // Comment out logs for production
         } catch (error) {
           console.error("Silent token acquisition failed:", error);
-          // Optional: You could trigger a logout or redirect here
         }
       }
     } catch (error) {
       console.error("MSAL initialization error:", error);
     }
-
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+// --- UPDATED RESPONSE INTERCEPTOR FOR TOASTS ---
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Extract the exact message we set in globalErrorHandler.js
+    const message = error.response?.data?.message || "An unexpected error occurred";
+
     if (error.response?.status === 401) {
-      console.error("401 Unauthorized - Session expired or invalid token");
-      // Optional: Redirect to login if 401 occurs
-      // window.location.href = '/auth/login'; 
+      console.error("401 Unauthorized");
+      // Optional: window.location.href = '/auth/login';
     }
+
+    // Automatically trigger a toast for 403 (Forbidden) and 400 (Bad Request)
+    if (error.response?.status === 403 || error.response?.status === 400) {
+      toast.error(message); // This will show your "Permission Denied" message!
+    }
+
+    // Also trigger for 500 so you know when the server crashes
+    if (error.response?.status === 500) {
+      toast.error("Internal Server Error: Please check backend logs.");
+    }
+
     return Promise.reject(error);
   }
 );

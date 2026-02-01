@@ -5,6 +5,8 @@ import {
   AlertCircle, XCircle, Download, Edit2, Save, X 
 } from "lucide-react";
 import { toast } from "react-toastify";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 // --- SUB-COMPONENT: LIVE TIMER ---
 const LiveTimer = ({ startTime }) => {
@@ -43,12 +45,12 @@ const AdminAttendance = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
+  const [filterDate, setFilterDate] = useState(new Date());
   
   // Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState(null);
-  const [editFormData, setEditFormData] = useState({ checkInTime: "", checkOutTime: "", status: "" });
+  const [editFormData, setEditFormData] = useState({ checkInTime: null, checkOutTime: null, status: "" });
   
   // Permission State
   const [currentUserRole, setCurrentUserRole] = useState("");
@@ -57,12 +59,10 @@ const AdminAttendance = () => {
     const initData = async () => {
       setLoading(true);
       try {
-        // 1. Fetch User Role directly to ensure accuracy
         const userRes = await api.get("/auth/me");
         const role = userRes.data.user.role || "";
         setCurrentUserRole(role.replace(/\s+/g, '').toLowerCase());
 
-        // 2. Fetch Logs
         const logRes = await api.get("/timetrackers");
         const sortedLogs = logRes.data.sort((a, b) => new Date(b.date) - new Date(a.date));
         setLogs(sortedLogs);
@@ -77,7 +77,6 @@ const AdminAttendance = () => {
     initData();
   }, []);
 
-  // REQUIREMENT: Only Super Admin can Edit
   const canEdit = currentUserRole === 'superadmin';
 
   // --- DOWNLOAD EXCEL (CSV) ---
@@ -107,7 +106,7 @@ const AdminAttendance = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `attendance_report_${filterDate}.csv`);
+    link.setAttribute("download", `attendance_report_${filterDate ? filterDate.toISOString().split('T')[0] : 'all'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -117,8 +116,8 @@ const AdminAttendance = () => {
   const handleEditClick = (log) => {
     setEditingLog(log);
     setEditFormData({
-      checkInTime: log.checkInTime ? new Date(log.checkInTime).toISOString().slice(0, 16) : "",
-      checkOutTime: log.checkOutTime ? new Date(log.checkOutTime).toISOString().slice(0, 16) : "",
+      checkInTime: log.checkInTime ? new Date(log.checkInTime) : null,
+      checkOutTime: log.checkOutTime ? new Date(log.checkOutTime) : null,
       status: log.status
     });
     setIsEditModalOpen(true);
@@ -142,7 +141,6 @@ const AdminAttendance = () => {
       toast.success("Attendance updated successfully");
       setIsEditModalOpen(false);
       
-      // Refresh logs
       const res = await api.get("/timetrackers");
       setLogs(res.data.sort((a, b) => new Date(b.date) - new Date(a.date)));
     } catch (error) {
@@ -175,7 +173,8 @@ const AdminAttendance = () => {
 
   const filteredLogs = logs.filter((log) => {
     const logDate = new Date(log.date).toISOString().split("T")[0];
-    const matchesDate = filterDate ? logDate === filterDate : true;
+    const targetDate = filterDate ? filterDate.toISOString().split("T")[0] : null;
+    const matchesDate = targetDate ? logDate === targetDate : true;
     const employeeName = log.user?.name || "Unknown";
     const matchesSearch = employeeName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesDate && matchesSearch;
@@ -198,23 +197,27 @@ const AdminAttendance = () => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-2 h-full">
+        <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-2 h-auto sm:h-16"> 
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400"><Search size={18} /></div>
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400">
+              <Search size={18} />
+            </div>
             <input
               type="text"
               placeholder="Search Employee..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-full bg-slate-50 border border-slate-100 rounded-lg pl-10 pr-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-400"
+              className="w-full h-full bg-slate-50 border border-slate-100 rounded-lg pl-10 pr-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all"
             />
           </div>
           <div className="relative sm:w-48">
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="w-full h-full bg-slate-50 border border-slate-100 rounded-lg px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all text-slate-600"
+            <DatePicker
+              selected={filterDate}
+              onChange={(date) => setFilterDate(date)}
+              dateFormat="yyyy-MM-dd"
+              wrapperClassName="w-full h-full" // Ensure the wrapper fills the div
+              className="w-full h-full bg-slate-50 border border-slate-100 rounded-lg px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-100 transition-all text-slate-600 cursor-pointer"
+              placeholderText="Filter by Date"
             />
           </div>
         </div>
@@ -317,21 +320,25 @@ const AdminAttendance = () => {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Check In Time</label>
-                <input 
-                  type="datetime-local" 
+                <DatePicker
+                  selected={editFormData.checkInTime}
+                  onChange={(date) => setEditFormData({...editFormData, checkInTime: date})}
+                  showTimeSelect
+                  dateFormat="Pp"
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
-                  value={editFormData.checkInTime}
-                  onChange={(e) => setEditFormData({...editFormData, checkInTime: e.target.value})}
+                  popperProps={{ strategy: "fixed" }}
                 />
               </div>
               
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Check Out Time</label>
-                <input 
-                  type="datetime-local" 
+                <DatePicker
+                  selected={editFormData.checkOutTime}
+                  onChange={(date) => setEditFormData({...editFormData, checkOutTime: date})}
+                  showTimeSelect
+                  dateFormat="Pp"
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-100 outline-none"
-                  value={editFormData.checkOutTime}
-                  onChange={(e) => setEditFormData({...editFormData, checkOutTime: e.target.value})}
+                  popperProps={{ strategy: "fixed" }}
                 />
               </div>
 

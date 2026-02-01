@@ -49,8 +49,16 @@ exports.getSearchScope = async (currentUser, type) => {
     const indirectReports = await User.find({ reportsTo: { $in: directReports } }).distinct('_id');
     const fullTeam = [...directReports, ...indirectReports, _id];
 
+    if (type === 'usermanagement' && isTechnician) {
+      return {
+        $or: [
+          { role: { $ne: 'Super Admin' } }, 
+          { _id: { $in: fullTeam } }        
+        ]
+      };
+    }
+
     if (type === 'ticket') {
-      // REQUIREMENT: Managers only see all if they are also Technicians
       if (!isTechnician) return { closedBy: _id };
       return { closedBy: { $in: fullTeam } };
     }

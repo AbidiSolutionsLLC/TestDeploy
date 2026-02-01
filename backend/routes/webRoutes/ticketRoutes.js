@@ -8,6 +8,9 @@ const { isLoggedIn } = require("../../middlewares/authMiddleware");
 
 // Base: /api/web/tickets
 
+// --- FIX: Specific routes must come BEFORE dynamic routes like /:id ---
+router.get("/all", isLoggedIn, ticketController.getAllTickets); 
+
 router.route("/")
   .post(isLoggedIn, upload.single("attachment"), ticketController.createTicket)
   .get(isLoggedIn, ticketController.getAllTickets);
@@ -26,8 +29,7 @@ router.patch("/:id/priority", isLoggedIn, ticketController.updateTicketPriority)
 router.patch("/:id/assign", isLoggedIn, ticketController.updateTicketAssignee);
 router.post("/:id/response", isLoggedIn, ticketController.addTicketResponse);
 
-// --- DOWNLOAD ROUTE (Fixes 404) ---
-// Note: Matches the frontend call structure
+// --- DOWNLOAD ROUTE ---
 router.get("/:id/attachment/:attachmentId", ticketController.downloadTicketAttachment);
 
 module.exports = router;

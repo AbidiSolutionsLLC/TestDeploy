@@ -173,8 +173,7 @@ const Attendance = () => {
 
   return (
     <div className="min-h-screen bg-transparent p-2">
-      {/* Header card with updated calendar navigation */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4">
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 mb-4 p-4 relative z-50">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
             <h2 className="text-base font-bold text-slate-800 uppercase tracking-tight">Attendance</h2>
@@ -206,42 +205,12 @@ const Attendance = () => {
               </button>
 
               {showCalendar && (
-               <div className="absolute z-[999] mt-2 right-0 sm:left-0 bg-white shadow-2xl rounded-xl border border-slate-200">
-      <DatePicker
+                <div className="absolute z-[100] mt-2 right-0 sm:left-0 bg-white shadow-2xl rounded-xl border border-slate-200 p-2">
+                  <DatePicker
                     selected={selectedDate}
                     onChange={handleDateChange}
-                    inline={false} // Change to false to use as a popup if preferred
-                    calendarClassName="border-0"
-                    renderCustomHeader={({
-                      date,
-                      decreaseMonth,
-                      increaseMonth,
-                      prevMonthButtonDisabled,
-                      nextMonthButtonDisabled,
-                    }) => (
-                      <div className="flex items-center justify-between px-2 py-2">
-                        <button
-                          onClick={decreaseMonth}
-                          disabled={prevMonthButtonDisabled}
-                          className="p-1 rounded hover:bg-gray-100"
-                        >
-                          <FaAngleLeft className="text-gray-600" />
-                        </button>
-                        <span className="text-sm font-semibold text-gray-700">
-                          {date.toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                          })}
-                        </span>
-                        <button
-                          onClick={increaseMonth}
-                          disabled={nextMonthButtonDisabled}
-                          className="p-1 rounded hover:bg-gray-100"
-                        >
-                          <FaAngleRight className="text-gray-600" />
-                        </button>
-                      </div>
-                    )}
+                    open={showCalendar}
+                    onClickOutside={() => setShowCalendar(false)}
                   />
                 </div>
               )}
@@ -257,8 +226,9 @@ const Attendance = () => {
         </div>
       </div>
 
-      {/* Timeline-style Attendance View */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] -z-10 shadow-md border border-white/50 p-2 w-full overflow-x-auto">
+      {/* FIX: Added 'relative z-0' to keep it below the header dropdowns 
+      */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-2 w-full overflow-x-auto relative z-0">
         {loading ? (
           <div className="text-center p-6">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600"></div>
@@ -266,6 +236,7 @@ const Attendance = () => {
           </div>
         ) : (
           <div className="relative">
+            {/* ... rest of the timeline code remains exactly the same ... */}
             <div className="absolute left-20 top-0 h-full w-0.5 bg-slate-200 transform translate-x-1/2"></div>
             <div className="space-y-4">
               {weeklyData.map((day, index) => (
@@ -359,6 +330,7 @@ const Attendance = () => {
 
       {/* Summary Card */}
       <div className="mt-6 bg-white/90 backdrop-blur-sm rounded-[1.2rem] shadow-md border border-white/50 p-4">
+        {/* ... summary content remains same ... */}
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>

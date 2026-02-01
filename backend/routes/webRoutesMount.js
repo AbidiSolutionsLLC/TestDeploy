@@ -1,6 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const { isLoggedIn } = require("../middlewares/authMiddleware");
 
+// --- STEP 1: Import Controllers for the "Bridge" Routes ---
+const leaveController = require("../controllers/leaveRequest");
+const timesheetController = require("../controllers/timesheetController");
+
+// --- STEP 2: Import Existing Route Files ---
 const authRoutes = require("./webRoutes/authRoutes");
 const userRoutes = require("./webRoutes/userRoutes");
 const leaveRoutes = require("./webRoutes/leaveRoutes");
@@ -15,14 +21,20 @@ const timeLogRoutes = require("./webRoutes/timeLogRoutes");
 const timesheetRoutes = require("./webRoutes/timesheetRoutes");
 const departmentRoutes = require("./webRoutes/departmentRoutes");
 const adminDashboardRoutes = require("./webRoutes/adminDashboardRoutes");
-const { isLoggedIn } = require("../middlewares/authMiddleware");
 
+// --- STEP 3: THE FIX (Bridge Routes) ---
+// These catch the direct frontend requests that were causing 404 errors
 
+// Fix for Leave Management (GET /api/web/getAllLeaves)
+router.get("/getAllLeaves", isLoggedIn, leaveController.getLeaveRequests);
+
+// Fix for Approve Timesheets (Potential Fix if frontend calls root)
+router.get("/getAllTimesheets", isLoggedIn, timesheetController.getAllTimesheets);
+router.get("/getWeeklyTimesheets", isLoggedIn, timesheetController.getWeeklyTimesheets);
+
+// --- STEP 4: Standard Route Mounting ---
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
-// router.use('/files/cloudinary',isLoggedIn, require('./webRoutes/cloudinaryRoutes'));
-// router.use('/files/folders', isLoggedIn,   require('./webRoutes/folderRoutes'));
-// router.use('/files/files',      isLoggedIn,require('./webRoutes/filesRoute'));
 router.use("/leaves", leaveRoutes);
 router.use("/logs", logRoutes);
 router.use("/companies", companyRoutes);

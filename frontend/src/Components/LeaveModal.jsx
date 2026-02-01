@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { applyForLeave, refreshUserData } from "../slices/userSlice";
 import { toast } from "react-toastify";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
   const dispatch = useDispatch();
   const [leaveType, setLeaveType] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [reason, setReason] = useState("");
   const [quotaError, setQuotaError] = useState("");
   const [daysRequested, setDaysRequested] = useState(0);
@@ -15,19 +17,17 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
 
   const modalRef = useRef(null);
 
-  // Get user data from both auth and user slices
-  const { user: authUser } = useSelector((state) => state.auth);
-  const { userInfo, loading, error } = useSelector((state) => state.user);
+  // SAFE SELECTOR ACCESS
+  const { user: authUser } = useSelector((state) => state.auth || {});
+  const { userInfo } = useSelector((state) => state.user || {});
   
-  // Use userInfo if available, otherwise fall back to auth user
-  const userData = userInfo || authUser?.user || authUser;
-  const userLeaves = userData?.leaves || {};
+  // Safe Fallback for User Data
+  const userData = userInfo || authUser?.user || authUser || {};
+  const userLeaves = userData.leaves || {};
 
   const calculateDays = (start, end) => {
     if (!start || !end) return 0;
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
-    const diffTime = Math.abs(endDateObj - startDateObj);
+    const diffTime = Math.abs(end - start);
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
 
@@ -42,12 +42,11 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
     }
   };
 
-  // Clear error when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setLeaveType("");
-      setStartDate("");
-      setEndDate("");
+      setStartDate(null);
+      setEndDate(null);
       setReason("");
       setQuotaError("");
       setDaysRequested(0);
@@ -72,6 +71,13 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
     }
   }, [leaveType, startDate, endDate, userLeaves]);
 
+  const formatDateForApi = (date) => {
+    if (!date) return "";
+    const offset = date.getTimezoneOffset();
+    const adjusted = new Date(date.getTime() - (offset * 60 * 1000));
+    return adjusted.toISOString().split('T')[0];
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!leaveType || !startDate || !endDate) {
@@ -89,37 +95,22 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
     try {
       const leaveData = {
         leaveType,
-        startDate,
-        endDate,
+        startDate: formatDateForApi(startDate),
+        endDate: formatDateForApi(endDate),
         reason,
         userId: userData?._id || userData?.id,
         days: daysRequested
       };
 
-      // Dispatch the applyForLeave action
-      const result = await dispatch(applyForLeave(leaveData)).unwrap();
-      
+      await dispatch(applyForLeave(leaveData)).unwrap();
       toast.success("LEAVE REQUEST SUBMITTED");
       
-      // Refresh user data to get updated balances
       if (userData?._id) {
         dispatch(refreshUserData(userData._id));
       }
       
       setIsOpen(false);
-      
-      // Reset form
-      setLeaveType("");
-      setStartDate("");
-      setEndDate("");
-      setReason("");
-      setQuotaError("");
-      setDaysRequested(0);
-      
-      // Call the callback if provided
-      if (onLeaveAdded) {
-        onLeaveAdded();
-      }
+      if (onLeaveAdded) onLeaveAdded();
       
     } catch (error) {
       toast.error(error || "FAILED TO SUBMIT");
@@ -142,7 +133,6 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
         ref={modalRef}
         className="w-full max-w-md bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex flex-col max-h-[90vh] animate-fadeIn overflow-hidden"
       >
-        {/* CLOSE BUTTON */}
         <button 
           onClick={() => !isSubmitting && setIsOpen(false)} 
           disabled={isSubmitting}
@@ -151,20 +141,17 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
           &times;
         </button>
 
-        {/* HEADER */}
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-b border-slate-50 text-center flex-shrink-0">
           <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-widest uppercase">
             APPLY FOR LEAVE
           </h2>
         </div>
 
-        {/* FORM BODY */}
         <form 
           id="leaveForm"
           className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar"
           onSubmit={handleSubmit}
         >
-          {/* LEAVE TYPE */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               LEAVE TYPE*
@@ -195,33 +182,36 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* START DATE */}
             <div>
               <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
                 START DATE*
               </label>
-              <input
-                type="date"
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+              <DatePicker
+                selected={startDate}
+                onChange={(date) => setStartDate(date)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 cursor-pointer"
+                placeholderText="Select Date"
+                dateFormat="yyyy-MM-dd"
                 required
                 disabled={isSubmitting}
+                popperProps={{ strategy: "fixed" }}
               />
             </div>
 
-            {/* END DATE */}
             <div>
               <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
                 END DATE*
               </label>
-              <input
-                type="date"
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+              <DatePicker
+                selected={endDate}
+                onChange={(date) => setEndDate(date)}
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50 cursor-pointer"
+                placeholderText="Select Date"
+                dateFormat="yyyy-MM-dd"
+                minDate={startDate} 
                 required
                 disabled={isSubmitting}
+                popperProps={{ strategy: "fixed" }}
               />
             </div>
           </div>
@@ -233,7 +223,6 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
             </div>
           )}
 
-          {/* REASON */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">
               REASON FOR LEAVE
@@ -248,7 +237,6 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
             ></textarea>
           </div>
 
-          {/* ERROR DISPLAY */}
           {quotaError && (
             <div className="bg-red-50 p-3 rounded-xl border border-red-100">
               <p className="text-[10px] font-black text-red-500 uppercase tracking-tight text-center">
@@ -257,17 +245,10 @@ const ApplyLeaveModal = ({ isOpen, setIsOpen, onLeaveAdded }) => {
             </div>
           )}
 
-          {/* API ERROR DISPLAY */}
-          {error && (
-            <div className="bg-red-50 p-3 rounded-xl border border-red-100">
-              <p className="text-[10px] font-black text-red-500 uppercase tracking-tight text-center">
-                {error}
-              </p>
-            </div>
-          )}
+          {/* Validation to ensure buttons don't float if content is short */}
+          <div className="h-4"></div>
         </form>
 
-        {/* FOOTER */}
         <div className="px-6 py-6 sm:px-10 sm:py-8 border-t border-slate-100 flex gap-3 sm:gap-4 bg-white flex-shrink-0">
           <button 
             type="button" 

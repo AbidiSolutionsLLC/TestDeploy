@@ -5,7 +5,20 @@ const catchAsync = require("../utils/catchAsync");
 const { moment, TIMEZONE } = require("../utils/dateUtils");
 const { BadRequestError, NotFoundError, ForbiddenError } = require("../utils/ExpressError");
 const sendEmail = require('../utils/emailService');
-const { getSearchScope } = require("../utils/rbac");
+const mongoose = require("mongoose");
+
+// --- HELPER: GET FULL TEAM IDS (RECURSIVE) ---
+const getTeamIds = async (managerId) => {
+  let teamIds = [managerId.toString()];
+  const directReports = await User.find({ reportsTo: managerId }).distinct('_id');
+  if (directReports.length > 0) {
+    for (const reportId of directReports) {
+      const subTeam = await getTeamIds(reportId);
+      teamIds = [...new Set([...teamIds, ...subTeam])];
+    }
+  }
+  return teamIds;
+};
 
 // --- CREATE LEAVE REQUEST ---
 exports.createLeaveRequest = catchAsync(async (req, res) => {
@@ -49,7 +62,6 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
 
   const savedLeaveRequest = await leaveRequest.save();
 
-  // Update Balances
   const updateObj = {
     $push: {
       leaveHistory: {
@@ -71,7 +83,6 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
 
   await User.findByIdAndUpdate(user._id, updateObj);
 
-  // Time Tracker Logic (Mark future dates as Leave)
   const timeTrackerEntries = [];
   const curr = start.clone();
   while (curr.isSameOrBefore(end)) {
@@ -95,12 +106,24 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
   res.status(201).json({ success: true, data: savedLeaveRequest });
 });
 
-// --- GET LEAVES (Using RBAC) ---
+// --- GET LEAVE REQUESTS (RECURSIVE TEAM VIEW) ---
 exports.getLeaveRequests = catchAsync(async (req, res) => {
-  const rbacFilter = await getSearchScope(req.user, 'leave');
-  const query = { ...rbacFilter };
+  const roleKey = req.user.role.replace(/\s+/g, '').toLowerCase();
+  let query = {};
+  const currentUserId = req.user.id || req.user._id;
 
-  if (req.query.employeeName) query.employeeName = req.query.employeeName;
+  if (roleKey === 'superadmin' || roleKey === 'hr') {
+      query = {}; 
+  } 
+  else if (roleKey === 'manager' || roleKey === 'admin') {
+      const fullTeamIds = await getTeamIds(currentUserId);
+      query.employee = { $in: fullTeamIds };
+  } 
+  else {
+      query.employee = currentUserId;
+  }
+
+  if (req.query.employeeName) query.employeeName = { $regex: req.query.employeeName, $options: 'i' };
   if (req.query.leaveType) query.leaveType = req.query.leaveType;
   if (req.query.status) query.status = req.query.status;
 
@@ -108,7 +131,7 @@ exports.getLeaveRequests = catchAsync(async (req, res) => {
   res.json({ success: true, data: leaveRequests });
 });
 
-// --- APPROVE / REJECT LEAVE ---
+// --- APPROVE / REJECT LEAVE (RESTRICTED TO HR/ADMIN) ---
 exports.updateLeaveStatus = catchAsync(async (req, res) => {
   const { status } = req.body;
   const { id } = req.params;
@@ -119,20 +142,22 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   if (!leaveRequest) throw new NotFoundError("Leave request not found");
 
   const roleKey = req.user.role.replace(/\s+/g, '').toLowerCase();
-  
-  // FIX: Allow Super Admin to approve their own leave
-  if (leaveRequest.employee.toString() === req.user.id && roleKey !== 'superadmin') {
-     throw new ForbiddenError("You cannot update the status of your own leave request.");
+  const currentUserId = req.user.id || req.user._id;
+
+  // --- REQUIREMENT: Managers are READ ONLY ---
+  if (!['superadmin', 'admin', 'hr'].includes(roleKey)) {
+     throw new ForbiddenError("Managers have read-only access to leaves. Contact HR for approvals.");
   }
 
-  // Admin/Manager restricted to subordinates. HR/Super Admin allowed globally.
-  if (roleKey === 'admin' || roleKey === 'manager') {
-     const employee = await User.findById(leaveRequest.employee);
-     if (employee.reportsTo?.toString() !== req.user.id) {
-        throw new ForbiddenError("You can only approve leaves for your direct subordinates.");
+  // --- SECURITY: Hierarchy & Self-Approval Block ---
+  if (roleKey === 'admin') {
+     if (leaveRequest.employee.toString() === currentUserId.toString()) {
+        throw new ForbiddenError("You cannot update the status of your own leave request.");
      }
-  } else if (roleKey !== 'superadmin' && roleKey !== 'hr') {
-     throw new ForbiddenError("Permission denied.");
+     const adminTeam = await getTeamIds(currentUserId);
+     if (!adminTeam.includes(leaveRequest.employee.toString())) {
+        throw new ForbiddenError("Admins can only manage leaves for their own team hierarchy.");
+     }
   }
 
   const start = moment(leaveRequest.startDate).tz(TIMEZONE).startOf('day');
@@ -140,17 +165,15 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   const daysDiff = end.diff(start, 'days') + 1;
 
   const updateObj = { $set: { "leaveHistory.$[elem].status": status } };
-
   const oldStatus = leaveRequest.status;
+
   if (status === "Rejected" && oldStatus !== "Rejected") {
-    // Refund leaves
     updateObj.$inc = {
       [`leaves.${leaveRequest.leaveType.toLowerCase()}`]: daysDiff,
       bookedLeaves: -daysDiff,
       avalaibleLeaves: daysDiff
     };
   } else if (status === "Approved" && oldStatus === "Rejected") {
-    // Deduct again
     updateObj.$inc = {
       [`leaves.${leaveRequest.leaveType.toLowerCase()}`]: -daysDiff,
       bookedLeaves: daysDiff,
@@ -172,6 +195,19 @@ exports.updateLeaveStatus = catchAsync(async (req, res) => {
   }
 
   res.status(200).json({ success: true, message: `Leave status updated to ${status}`, data: leaveRequest });
+});
+
+// --- MANAGE HOLIDAYS (NEW RESTRICTION) ---
+exports.manageHolidays = catchAsync(async (req, res) => {
+  const roleKey = req.user.role.replace(/\s+/g, '').toLowerCase();
+  
+  // Only Super Admin, Admin, and HR can manage holidays
+  if (!['superadmin', 'admin', 'hr'].includes(roleKey)) {
+    throw new ForbiddenError("Permission Denied: Managers cannot manage company holidays.");
+  }
+
+  // Logic for adding/updating holiday entries would go here
+  res.status(200).json({ success: true, message: "Holiday list updated." });
 });
 
 exports.getLeaveRequestById = catchAsync(async (req, res) => {

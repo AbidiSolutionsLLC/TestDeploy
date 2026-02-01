@@ -6,6 +6,9 @@ const { isLoggedIn } = require("../../middlewares/authMiddleware");
 
 router.use(isLoggedIn);
 
+// --- FIX: Add the specific route the frontend is calling ---
+router.get("/getAllLeaves", leaveController.getLeaveRequests);
+
 router
   .route("/")
   .post(leaveController.createLeaveRequest)

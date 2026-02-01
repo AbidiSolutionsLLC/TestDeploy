@@ -56,20 +56,27 @@ const SubNavbarVertical = () => {
   const filteredLinks = rawLinks.filter(link => {
     if (!user) return false;
 
+    // 1. Assigned Tickets: Show for Techs, Tech-Managers, and Super Admins
     if (link.name === "Assigned Tickets") {
       const isTech = user.isTechnician || user.role === "Technician";
       const isManagerTech = user.role === "Manager" && user.isTechnician;
       return user.role === "Super Admin" || isTech || isManagerTech;
     }
 
+    // 2. Assign Ticket: Show for Super Admin, Admin, or Tech-Managers
     if (link.name === "Assign Ticket") {
       const isManagerTech = user.role === "Manager" && user.isTechnician;
-      return user.role === "Super Admin" || isManagerTech;
+      return user.role === "Super Admin" || user.role === "Admin" || isManagerTech;
     }
 
-    // General Visibility for User Management
+    // 3. User Management: Standard Admin/HR access
     if (link.name === "User Management") {
       return ["Super Admin", "Admin", "HR"].includes(user.role);
+    }
+
+    // 4. FIX: Hide "Approve Time Sheets" specifically for HR
+    if (link.name === "Approve Time Sheets") {
+      return user.role !== "HR"; 
     }
 
     return true; 
@@ -84,6 +91,7 @@ const SubNavbarVertical = () => {
     "Admin DashBoard": ShieldCheckIcon, "Leave Management": BriefcaseIcon, "User Management": UsersIcon,
     "File Management": FolderPlusIcon, "Approve Time Sheets": CheckBadgeIcon, "Assign Ticket": AssignTicketIcon,
     "Assigned Tickets": AssignTicketIcon,
+    "Org Chart": UserGroupIcon, // Added Icon mapping
     "default": Squares2X2Icon
   };
 

@@ -10,20 +10,18 @@ const checkWritePermission = async (actor, targetUserId = null, targetRole = nul
   // 1. Super Admin has Global Write Access
   if (actor.role === 'Super Admin') return true;
 
-  // 2. HR, Managers, Technicians, Employees have NO Write Access
-  // This ensures HR is Read Only in User Management as they can see all but edit none.
-  if (['HR', 'Manager', 'Technician', 'Employee'].includes(actor.role)) {
-    throw new ForbiddenError("You do not have permission to manage users.");
-  }
+  // 2. Manager + Technician Logic (NEW FIX)
+  // Allows Managers who are Technicians to manage users (Assign Techs, etc.)
+  const isManagerTech = actor.role === 'Manager' && actor.isTechnician === true;
 
   // 3. Admin Logic (Scoped Write Access)
-  if (actor.role === 'Admin') {
-    // Restricted Roles that an Admin cannot touch or create
+  if (actor.role === 'Admin' || isManagerTech) {
+    // Restricted Roles that an Admin/ManagerTech cannot touch or create
     const restrictedRoles = ['Super Admin', 'Admin'];
 
     // Cannot create/assign a user to a restricted role
     if (targetRole && restrictedRoles.includes(targetRole)) {
-      throw new ForbiddenError("Admins cannot create or assign Admin or Super Admin roles.");
+      throw new ForbiddenError("You cannot assign or manage Admin or Super Admin roles.");
     }
 
     // If Editing/Deleting an existing user:
@@ -31,13 +29,17 @@ const checkWritePermission = async (actor, targetUserId = null, targetRole = nul
       const targetUser = await User.findById(targetUserId);
       if (!targetUser) throw new NotFoundError("User not found");
 
-      // REQUIREMENT: Admin can only edit/delete (Managers, HR, Technicians & Employees)
-      // Block editing/deleting of other Admins and Super Admins
+      // Block editing/deleting of Admins and Super Admins
       if (restrictedRoles.includes(targetUser.role)) {
-        throw new ForbiddenError("Admins cannot edit or delete other Admins or Super Admins.");
+        throw new ForbiddenError("Permission Denied: You cannot modify Admins or Super Admins.");
       }
     }
     return true;
+  }
+
+  // 4. Standard HR, Managers, Technicians, Employees have NO Write Access
+  if (['HR', 'Manager', 'Technician', 'Employee'].includes(actor.role)) {
+    throw new ForbiddenError("You do not have permission to manage users.");
   }
 
   return false;
@@ -92,12 +94,10 @@ const sendInviteEmail = async (user) => {
 exports.createUser = catchAsync(async (req, res) => {
   let { email, ...otherData } = req.body;
   
-  // 1. RBAC Check
   await checkWritePermission(req.user, null, otherData.role);
 
   if (otherData.reportsTo === "NO MANAGER (TOP LEVEL)" || otherData.reportsTo === "") otherData.reportsTo = null;
 
-  // 2. Admin Restriction: Must set reportsTo = Themselves if they are an Admin
   if (req.user.role === 'Admin' && (!otherData.reportsTo || otherData.reportsTo !== req.user.id)) {
      otherData.reportsTo = req.user.id;
   }
@@ -255,10 +255,27 @@ exports.getUserLeaves = catchAsync(async (req, res) => {
 exports.updateUserLeaves = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { pto, sick } = req.body;
-  if (!['Super Admin', 'HR'].includes(req.user.role)) throw new ForbiddenError("Permission denied.");
-
   const user = await User.findById(id);
   if (!user) throw new NotFoundError("User");
+
+  const role = req.user.role;
+
+  if (role === 'Super Admin' || role === 'HR') {
+    // Allowed
+  } 
+  else if (role === 'Admin' || role === 'Manager') {
+    const isSubordinate = 
+      (user.reportsTo && user.reportsTo.toString() === req.user.id) ||
+      (user.reportingManager && user.reportingManager.toString() === req.user.id);
+      
+    if (!isSubordinate) {
+      throw new ForbiddenError("You can only update leaves for your direct subordinates.");
+    }
+  } 
+  else {
+    throw new ForbiddenError("Permission denied.");
+  }
+
   if (pto !== undefined) user.leaves.pto = pto;
   if (sick !== undefined) user.leaves.sick = sick;
   const totalAllocated = (user.leaves.pto || 0) + (user.leaves.sick || 0);

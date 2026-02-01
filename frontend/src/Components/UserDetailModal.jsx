@@ -84,7 +84,7 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
         
         // --- FIX: Normalize Super Admin Role for Enum ---
         if (key === 'role' && newValue === "Super Admin") {
-           newValue = "SuperAdmin";
+           newValue = "Super Admin";
         }
         // ------------------------------------------------
 
@@ -274,7 +274,7 @@ const UserDetailModal = ({ user, isOpen, onClose, onUserUpdated, allManagers, al
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Employment Details</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {renderField("Status", "empStatus", formData.empStatus, "select", [{ value: "Active", label: "ACTIVE" }, { value: "Inactive", label: "INACTIVE" }, { value: "Pending", label: "PENDING" }])}
-                  {renderField("Role", "role", formData.role, "select", [{ value: "Employee", label: "EMPLOYEE" }, { value: "Manager", label: "MANAGER" }, { value: "HR", label: "HR" }, { value: "Admin", label: "ADMIN" }, { value: "SuperAdmin", label: "SUPER ADMIN" }])}
+                  {renderField("Role", "role", formData.role, "select", [{ value: "Employee", label: "EMPLOYEE" }, { value: "Manager", label: "MANAGER" }, { value: "HR", label: "HR" }, { value: "Admin", label: "ADMIN" }, { value: "Super Admin", label: "SUPER ADMIN" }])}
                   {renderField("Designation", "designation", formData.designation)}
                   
                   {/* isTechnician Toggle - Only show in Edit Mode */}

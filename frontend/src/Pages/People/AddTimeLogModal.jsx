@@ -1,11 +1,12 @@
 import React, { useState, useRef } from "react";
 import timeLogApi from "../../api/timeLogApi";
 import { toast } from "react-toastify";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
   const [jobTitle, setJobTitle] = useState("");
-  const [customJobTitle, setCustomJobTitle] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(null); // Changed to null for Date object
   const [hours, setHours] = useState("");
   const [description, setDescription] = useState("");
   const [attachment, setAttachment] = useState(null);
@@ -14,20 +15,23 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
   
   const modalRef = useRef(null);
 
-  const jobOptions = ["Frontend Development", "Backend Development", "Design", "Testing", "Other"];
-  const finalJobTitle = jobTitle === "Other" ? customJobTitle.trim() : jobTitle;
-
   // Validation
-  const isJobTitleValid = finalJobTitle.length >= 3;
+  const isJobTitleValid = jobTitle.trim().length >= 3;
   const isDateValid = Boolean(date);
   const isHoursValid = Number(hours) > 0;
   const isDescriptionValid = description.trim().length >= 5;
   const isCurrentInputValid = isJobTitleValid && isDateValid && isHoursValid && isDescriptionValid;
 
-  // Get today's date in YYYY-MM-DD format for max date attribute
-  const today = new Date().toISOString().split("T")[0];
-
   if (!isOpen) return null;
+
+  // Helper: Format Date to YYYY-MM-DD for API
+  const formatDateForApi = (d) => {
+    if (!d) return "";
+    // Adjust for timezone to ensure the selected day is sent correctly
+    const offset = d.getTimezoneOffset();
+    const adjustedDate = new Date(d.getTime() - (offset * 60 * 1000));
+    return adjustedDate.toISOString().split('T')[0];
+  };
 
   const handleBackdropClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) {
@@ -38,8 +42,8 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
   const handleAddAnother = () => {
     if (isCurrentInputValid) {
       const newLog = {
-        jobTitle: finalJobTitle,
-        date,
+        jobTitle: jobTitle.trim(),
+        date: formatDateForApi(date),
         hours: parseFloat(hours),
         description: description.trim(),
         attachmentName: attachment ? attachment.name : null,
@@ -48,8 +52,7 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
       setLogs([...logs, newLog]);
       // Reset form fields
       setJobTitle("");
-      setCustomJobTitle("");
-      setDate("");
+      setDate(null);
       setHours("");
       setDescription("");
       setAttachment(null);
@@ -61,8 +64,8 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
     try {
       // Use current input if logs array is empty, otherwise use logs array
       const logsToSubmit = logs.length > 0 ? logs : [{
-        jobTitle: finalJobTitle,
-        date,
+        jobTitle: jobTitle.trim(),
+        date: formatDateForApi(date),
         hours: parseFloat(hours),
         description: description.trim(),
         attachmentFile: attachment
@@ -118,50 +121,34 @@ const AddTimeLogModal = ({ isOpen, onClose, onTimeLogAdded }) => {
         {/* FORM BODY */}
         <div className="p-6 sm:p-10 space-y-5 sm:space-y-6 overflow-y-auto custom-scrollbar">
           
-          {/* JOB TITLE */}
+          {/* JOB TITLE INPUT */}
           <div>
             <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">JOB TITLE*</label>
-            <div className="space-y-3">
-              <div className="relative">
-                <select
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-blue-100 transition-all"
-                  required
-                >
-                  <option value="">SELECT JOB</option>
-                  {jobOptions.map((opt) => (
-                    <option key={opt} value={opt}>{opt.toUpperCase()}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                </div>
-              </div>
-              {jobTitle === "Other" && (
-                <input
-                  type="text"
-                  placeholder="enter custom title"
-                  value={customJobTitle}
-                  onChange={(e) => setCustomJobTitle(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-300"
-                />
-              )}
-            </div>
+            <input
+              type="text"
+              placeholder="e.g. Frontend Development"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 font-medium outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-slate-300 transition-all"
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {/* DATE */}
-            <div>
+            {/* DATE (MODERN CALENDAR) */}
+            <div className="relative">
               <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">DATE*</label>
-              <input
-                type="date"
-                value={date}
-                max={today} // Restrict future dates
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100"
+              <DatePicker
+                selected={date}
+                onChange={(d) => setDate(d)}
+                maxDate={new Date()}
+                dateFormat="yyyy-MM-dd"
+                placeholderText="Select Date"
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                popperProps={{ strategy: "fixed" }} // Prevents clipping in modal
               />
             </div>
+            
             {/* HOURS */}
             <div>
               <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">HOURS*</label>

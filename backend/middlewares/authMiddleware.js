@@ -85,7 +85,8 @@ const isLoggedIn = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        department: user.department
+        department: user.department,
+        isTechnician: user.isTechnician
       };
 
       req.token = token;
